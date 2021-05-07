@@ -27,3 +27,6 @@ test:
 
 clean:
 	rm -rfv ntt $(OBJ) $(OBJ_CUDA)
+
+cleanw:
+	powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Remove-Item src/*.o -Recurse -Force" 

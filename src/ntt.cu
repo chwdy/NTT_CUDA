@@ -4,7 +4,7 @@
 #include <cstdlib> 		/* malloc() */
 #include <iostream>
 
-//#include "../include/utils2.h"	
+#include "../include/utils2.h"	
 #include "../include/utils.h"
 /* bit_reverse(), modExp(), modulo() */
 #include "../include/ntt.cuh" //INCLUDE HEADER FILE
@@ -34,7 +34,6 @@ extern "C" uint64_t *inPlaceNTT_DIT(uint64_t *vec, uint64_t n, uint64_t p, uint6
 	if (rev)
 	{
 		result = bit_reverse(vec, n);
-		printf("cpu input test :%I64d \n", vec[1]);
 	}
 	else
 	{
@@ -125,9 +124,8 @@ __global__ void ntt_cuda_kernel(uint64_t *g_idata, uint64_t n, uint64_t p, uint6
 				}
 			}
 		}
-		//printf(" out %d \n", g_odata[1]);
+
 	}
-	//printf("1");
 
 	__syncthreads();
 }
@@ -146,7 +144,7 @@ uint64_t *inPlaceNTT_DIT_cuda(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r,
 	size_t bytes = n * sizeof(uint64_t);
 	uint64_t *vec_host = (uint64_t *)malloc(bytes);
 	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
-	printf("grid %d block %d \n", grid.x, block.x);
+	//printf("grid %d block %d \n", grid.x, block.x);
 
 	memcpy(vec_host, vec, bytes);
 
@@ -165,8 +163,8 @@ uint64_t *inPlaceNTT_DIT_cuda(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r,
 	CHECK(cudaDeviceSynchronize());
 
 	//ntt_cuda_kernel<<<grid, block >>>(vec_dev, n_dev,p_dev,r_dev,rev_dev,outVec_dev);
-	//double computestart, computeElaps;
-	//computestart= cpuSecond();
+	double computestart, computeElaps;
+	computestart= cpuSecond();
 	
 	ntt_cuda_kernel<<<grid, block>>>(vec_dev, n, p, r, rev, outVec_dev);
 
@@ -175,8 +173,8 @@ uint64_t *inPlaceNTT_DIT_cuda(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r,
 	//copy back
 
 	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
-	//computeElaps = 1000 * (cpuSecond() - computestart);
-	//printf("compute elapsed %lf \n", computeElaps);
+	computeElaps = 1000 * (cpuSecond() - computestart);
+	printf("gpu 1 pure compute time elapsed %lf \n", computeElaps);
 
 	return outVec_host;
 }
