@@ -1,0 +1,8 @@
+/.vscode
+/ntt.exe
+/ntt.exp
+/ntt.lib
+src/*.o
+src/*.o
+src/utils_device.o
+src/ntt.o
