@@ -25,12 +25,10 @@ using namespace std;
 
 extern "C" uint64_t *inPlaceNTT_DIT(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
-
 	uint64_t *result;
 	uint64_t m, k_, a, factor1, factor2;
 
 	result = (uint64_t *)malloc(n * sizeof(uint64_t));
-
 	if (rev)
 	{
 		result = bit_reverse(vec, n);
@@ -42,30 +40,22 @@ extern "C" uint64_t *inPlaceNTT_DIT(uint64_t *vec, uint64_t n, uint64_t p, uint6
 			result[i] = vec[i];
 		}
 	}
-
 	for (uint64_t i = 1; i <= log2(n); i++)
 	{
-
 		m = pow(2, i);
-
 		k_ = (p - 1) / m;
 		a = modExp(r, k_, p);
-
 		for (uint64_t j = 0; j < n; j += m)
 		{
-
 			for (uint64_t k = 0; k < m / 2; k++)
 			{
-
 				factor1 = result[j + k];
 				factor2 = modulo(modExp(a, k, p) * result[j + k + m / 2], p);
-
 				result[j + k] = modulo(factor1 + factor2, p);
 				result[j + k + m / 2] = modulo(factor1 - factor2, p);
 			}
 		}
 	}
-
 	return result;
 };
 
@@ -77,20 +67,14 @@ __global__ void ntt_cuda_kernel(uint64_t *g_idata, uint64_t n, uint64_t p, uint6
 	uint64_t tid = threadIdx.x;
 	//boundary check
 	if (tid >= n)return;
-	//convert global data pointer to the
-	//uint64_t *idata = g_idata + blockIdx.x * blockDim.x;
-	//uint64_t *odata = g_odata + blockIdx.x * blockDim.x;
-
 	if (rev)
 	{
 		if (blockIdx.x == 0 && tid == 0)
 		{
-
 			uint64_t *temp;
 			temp = (uint64_t *) malloc(n*sizeof(uint64_t));
 			temp = bit_reverse_D(g_idata, n);
 			memcpy(g_odata, temp, n * sizeof(uint64_t));
-
 		}
 	}
 	else
@@ -100,42 +84,94 @@ __global__ void ntt_cuda_kernel(uint64_t *g_idata, uint64_t n, uint64_t p, uint6
 			g_odata[i] = g_idata[i];
 		}
 	}
-
+	
 	if (blockIdx.x == 0 && tid == 0)
 	{
+		//printf("godata first two number is %d %d \n",  g_odata[55],g_odata[71]);
 		for (uint64_t i = 1; i <= log2_D(n); i++)
 		{
-
 			m = pow_D(uint64_t(2), i);
-
 			k_ = (p - 1) / m;
 			a = modExp_D(r, k_, p);
-
 			for (uint64_t j = 0; j < n; j += m)
 			{
-
 				for (uint64_t k = 0; k < m / 2; k++)
 				{
 					factor1 = g_odata[j + k];
 					factor2 = modulo_D(modExp_D(a, k, p) * g_odata[j + k + m / 2], p);
-
 					g_odata[j + k] = modulo_D(factor1 + factor2, p);
 					g_odata[j + k + m / 2] = modulo_D(factor1 - factor2, p);
 				}
 			}
 		}
-
 	}
-
 	__syncthreads();
 }
 
+__global__ void ntt_cuda_kernel_stepA(uint64_t *g_idata, uint64_t num_bits, uint64_t n, uint64_t p, uint64_t r, bool rev, uint64_t *g_odata)
+{
+
+	uint64_t m, k_, a, factor1, factor2;
+	//set thread ID
+	uint64_t tid = threadIdx.x;
+	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
+	//boundary check
+	if (tid >= n)return;
+	//convert global data pointer to the
+	// uint64_t *idata = g_idata + blockIdx.x * blockDim.x;
+	// uint64_t *odata = g_odata + blockIdx.x * blockDim.x;
+
+	if (rev)
+	{
+		uint64_t reverse_num= 0;
+		for(uint64_t j = 0; j < num_bits; j++){
+			reverse_num = reverse_num << 1;
+			if(idx & (1 << j)){
+				reverse_num = reverse_num | 1;
+			}
+		}
+		g_odata[reverse_num] = g_idata[idx];
+	}
+	else
+	{
+		g_odata[idx] = g_idata[idx];
+	}
+	__syncthreads();
+	
+	if (blockIdx.x == 0 && tid == 0)
+	{
+		//printf("godata first two number is %d %d \n",  g_odata[55],g_odata[71]);
+		for (uint64_t i = 1; i <= log2_D(n); i++)
+		{
+			m = pow_D(uint64_t(2), i);
+			k_ = (p - 1) / m;
+			a = modExp_D(r, k_, p);
+			for (uint64_t j = 0; j < n; j += m)
+			{
+				for (uint64_t k = 0; k < m / 2; k++)
+				{
+					factor1 = g_odata[j + k];
+					factor2 = modulo_D(modExp_D(a, k, p) * g_odata[j + k + m / 2], p);
+					g_odata[j + k] = modulo_D(factor1 + factor2, p);
+					g_odata[j + k + m / 2] = modulo_D(factor1 - factor2, p);
+				}
+			}
+		}
+	}
+
+}
 extern "C" 
 uint64_t *inPlaceNTT_DIT_cuda(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
 
+	double computestart, computeElaps,copystart,copyElaps;
 	//cuda stuff
+	computestart= cpuSecond();
 	initDevice(0);
+	computeElaps = 1000 * (cpuSecond() - computestart);
+	printf("initialize device elapsed %lf \n", computeElaps);
+	printf("\n");
+	
 	int blocksize = 1024;
 	dim3 block(blocksize, 1);
 	dim3 grid((n - 1) / block.x + 1, 1);
@@ -156,25 +192,32 @@ uint64_t *inPlaceNTT_DIT_cuda(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r,
 	CHECK(cudaMalloc((void **)&vec_dev, bytes));
 	CHECK(cudaMalloc((void **)&outVec_dev, bytes));
 
-	//copy to device
+
+	//first task
+	copystart= cpuSecond();
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
-
-	//check and run
 	CHECK(cudaDeviceSynchronize());
-
-	//ntt_cuda_kernel<<<grid, block >>>(vec_dev, n_dev,p_dev,r_dev,rev_dev,outVec_dev);
-	double computestart, computeElaps;
 	computestart= cpuSecond();
-	
 	ntt_cuda_kernel<<<grid, block>>>(vec_dev, n, p, r, rev, outVec_dev);
-
-	CHECK(cudaDeviceSynchronize());
-
-	//copy back
-
-	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
 	computeElaps = 1000 * (cpuSecond() - computestart);
-	printf("gpu 1 pure compute time elapsed %lf \n", computeElaps);
+	CHECK(cudaDeviceSynchronize());
+	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
+	copyElaps = 1000 * (cpuSecond() - copystart);
+	printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### first task ### \n first two number is %I64d %I64d \n", computeElaps, copyElaps,outVec_host[0],outVec_host[1]);
+	printf("\n");
+
+	//remove bitreversal
+	copystart= cpuSecond();
+	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
+	CHECK(cudaDeviceSynchronize());
+	computestart= cpuSecond();
+	ntt_cuda_kernel<<<grid, block>>>(vec_dev, n, p, r, rev, outVec_dev);
+	computeElaps = 1000 * (cpuSecond() - computestart);
+	CHECK(cudaDeviceSynchronize());
+	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
+	copyElaps = 1000 * (cpuSecond() - copystart);
+	printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### bit reversal### \n first two number is %I64d %I64d \n", computeElaps, copyElaps,outVec_host[0],outVec_host[1]);
+	printf("\n");
 
 	return outVec_host;
 }

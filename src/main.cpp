@@ -32,13 +32,13 @@ int main(int argc, char *argv[])
 	outVec = inPlaceNTT_DIT(vec, n, p, r);
 	timeElaps = 1000 * (cpuSecond() - timeStart);
 
-	printf("cpu reduction elapsed %lf and first tow number is %I64d %I64d \n", timeElaps, outVec[0],outVec[1]);
-	//printVec(outVec, n);
+	printf("cpu reduction elapsed %lf \n first tow number is %I64d %I64d \n", timeElaps, outVec[0],outVec[1]);
+	printf("\n");
 
 	timeStart = cpuSecond();
 	outVec = inPlaceNTT_DIT_cuda(vec, n, p, r);
 	timeElaps = 1000 * (cpuSecond() - timeStart);
-	printf("gpu 1 total elapsed %lf and first two number is %I64d %I64d \n", timeElaps, outVec[0],outVec[1]);
+	printf("gpu 1 total elapsed %lf", timeElaps);
 
 	return 0;
 }
