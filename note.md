@@ -9,3 +9,9 @@ make ;compute-sanitizer .\ntt.exe
 # clean up *.o on windows
 
 make cleanw
+
+
+
+# 注意
+- 无关联的多线程执行，要用idx确切控制线程数量
+- toomany resource ： registers爆表，减少线程数量，可能是由于给每个kernel传入太多内容导致的
