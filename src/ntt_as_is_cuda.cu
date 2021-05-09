@@ -4,13 +4,12 @@
 #include <cstdlib> 		/* malloc() */
 #include <iostream>
 
-#include "../include/utils_device.cuh"	
-#include "../include/cuda_device.cuh"
 #include "../include/utils2.h"	
 #include "../include/utils.h"
 /* bit_reverse(), modExp(), modulo() */
 #include "../include/ntt.cuh" //INCLUDE HEADER FILE
-
+#include "../include/utils_device.cuh"	
+#include "../include/cuda_device.cuh"
 
 /**
  * Perform an in-place iterative breadth-first decimation-in-time Cooley-Tukey NTT on an input vector and return the result
@@ -24,7 +23,8 @@
  */
 using namespace std;
 
-__global__ void ntt_cuda_kernel(uint64_t *g_idata, uint64_t n, uint64_t p, uint64_t r, bool rev, uint64_t *g_odata)
+
+__global__ void ntt_kernel_cuda_asis(uint64_t *g_idata, uint64_t n, uint64_t p, uint64_t r, bool rev, uint64_t *g_odata)
 {
 
 	uint64_t m, k_, a, factor1, factor2;
@@ -74,25 +74,49 @@ __global__ void ntt_cuda_kernel(uint64_t *g_idata, uint64_t n, uint64_t p, uint6
 }
 
 extern "C" 
-uint64_t *inPlaceNTT_DIT(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
+uint64_t *inPlaceNTT_DIT_cuda_asis(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
 
-	double computestart, computeElaps;//,copystart,copyElaps;
-	//cuda stuff
-	computestart= cpuSecond();
-	initDevice(0);
-	computeElaps = 1000 * (cpuSecond() - computestart);
-	printf("initialize device elapsed %lf \n", computeElaps);
-	printf("\n");
+	double computestart, computeElaps,copystart,copyElaps;
 
 	int blocksize = 1024;
 	dim3 block(blocksize, 1);
 	dim3 grid((n - 1) / block.x + 1, 1);
 
-	// //var init
+	//var init
 	size_t bytes = n * sizeof(uint64_t);
-	// uint64_t *vec_host = (uint64_t *)malloc(bytes);
-	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
+	uint64_t *vec_host = (uint64_t *)malloc(bytes);
+	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //
+
+	memcpy(vec_host, vec, bytes);
+
+	// device memory declare
+	uint64_t *vec_dev = NULL;
+	uint64_t *outVec_dev = NULL;
+
+	//device memory allocate
+	CHECK(cudaMalloc((void **)&vec_dev, bytes));
+	CHECK(cudaMalloc((void **)&outVec_dev, bytes));
+
+
+	//first task
+	CHECK(cudaMemset(vec_dev,0,bytes))
+	CHECK(cudaMemset(outVec_dev,0,bytes))
+	copystart= cpuSecond();
+	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
+	CHECK(cudaDeviceSynchronize());
+	computestart= cpuSecond();
+	ntt_kernel_cuda_asis<<<grid, block>>>(vec_dev, n, p, r, rev, outVec_dev);
+	CHECK(cudaDeviceSynchronize());
+	computeElaps = 1000 * (cpuSecond() - computestart);
+	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
+	copyElaps = 1000 * (cpuSecond() - copystart);
+	printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### first task ### \n first two number is %lld %lld \n", computeElaps, copyElaps,outVec_host[0],outVec_host[1]);
+
+
+	CHECK(cudaFree(vec_dev));
+	CHECK(cudaFree(outVec_dev));
+
 
 	return outVec_host;
 }

@@ -5,10 +5,16 @@
 //#include <unistd.h>
 #include <iostream>
 
-#include "../include/ntt.cuh" /* naiveNTT(), outOfPlaceNTT_DIT() */
 #include "../include/utils.h" /* printVec() */
 #include "../include/utils2.h"
 
+//#include "../include/ntt.cuh" /* naiveNTT(), outOfPlaceNTT_DIT() */
+#include "../include/ntt_cpu.h" 
+#include "../include/ntt_as_is_cuda.cuh" 
+#include "../include/ntt_step_a.cuh" 
+#include "../include/ntt_step_b.cuh" 
+#include "../include/ntt_step_c.cuh" 
+#include "../include/cuda_device.cuh" 
 
 
 using namespace std;
@@ -26,19 +32,51 @@ int main(int argc, char *argv[])
 		vec[i] = i;
 	}
 
+	
 	double timeStart, timeElaps;
 	uint64_t *outVec;
-	timeStart = cpuSecond();
-	outVec = inPlaceNTT_DIT(vec, n, p, r);
-	timeElaps = 1000 * (cpuSecond() - timeStart);
 
+	//cpu
+	timeStart = cpuSecond();
+	outVec = inPlaceNTT_DIT_cpu(vec, n, p, r);
+	timeElaps = 1000 * (cpuSecond() - timeStart);
 	printf("cpu reduction elapsed %lf \n first tow number is %I64d %I64d \n", timeElaps, outVec[0],outVec[1]);
 	printf("\n");
 
+	//gpu init
 	timeStart = cpuSecond();
-	outVec = inPlaceNTT_DIT_cuda(vec, n, p, r);
+	initDevice(0);
 	timeElaps = 1000 * (cpuSecond() - timeStart);
-	printf("gpu 1 total elapsed %lf", timeElaps);
+	printf("GPU init elapsed %lf \n", timeElaps);
+	printf("\n");
+
+	//gpu-as-is
+	timeStart = cpuSecond();
+	outVec = inPlaceNTT_DIT_cuda_asis(vec, n, p, r);
+	timeElaps = 1000 * (cpuSecond() - timeStart);
+	printf("gpu as-is total elapsed %lf \n", timeElaps);
+	printf("\n");
+
+	//gpu-step-a
+	timeStart = cpuSecond();
+	outVec = inPlaceNTT_DIT_stepA(vec, n, p, r);
+	timeElaps = 1000 * (cpuSecond() - timeStart);
+	printf("gpu stepA total elapsed %lf \n", timeElaps);
+	printf("\n");
+
+	//gpu-step-b
+	timeStart = cpuSecond();
+	outVec = inPlaceNTT_DIT_stepB(vec, n, p, r);
+	timeElaps = 1000 * (cpuSecond() - timeStart);
+	printf("gpu stepB total elapsed %lf \n", timeElaps);
+	printf("\n");
+
+	//gpu-step-b
+	timeStart = cpuSecond();
+	outVec = inPlaceNTT_DIT_stepC(vec, n, p, r);
+	timeElaps = 1000 * (cpuSecond() - timeStart);
+	printf("gpu stepB total elapsed %lf \n", timeElaps);
+	printf("\n");
 
 	return 0;
 }
