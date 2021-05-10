@@ -71,9 +71,6 @@ __global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int offset,int num_bits
 extern "C" 
 uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
-
-	double computestart, computeElaps,copystart,copyElaps;
-
 	int blocksize = 1024;
 	dim3 block(blocksize, 1);
 	dim3 grid((n - 1) / block.x + 1, 1);
@@ -124,17 +121,15 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
-	copystart= cpuSecond();
+
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
-	computestart= cpuSecond();
+
 	for (int offset = 0;offset<batch_size;offset++){
 		ntt_cuda_kernel_stepC<<<grid, block>>>(vec_dev,offset,num_bits,ak_table_dev,n_dev, p_dev,rev, outVec_dev);
 	}
 	CHECK(cudaDeviceSynchronize());	
-	computeElaps = 1000 * (cpuSecond() - computestart);
 	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
-	copyElaps = 1000 * (cpuSecond() - copystart);
 
 	CHECK(cudaFree(vec_dev));
 	CHECK(cudaFree(ak_table_dev));

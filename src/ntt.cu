@@ -101,7 +101,6 @@ extern "C" uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size,
                                     uint64_t n, uint64_t p, uint64_t r,
                                     bool rev) {
 
-  double computestart, computeElaps, copystart, copyElaps;
 
   int blocksize = 1024;
   dim3 block(blocksize, 1);
@@ -160,10 +159,10 @@ extern "C" uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size,
 
   CHECK(cudaMemset(vec_dev, 0, bytes))
   CHECK(cudaMemset(outVec_dev, 0, bytes))
-  copystart = cpuSecond();
+
   CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
   CHECK(cudaDeviceSynchronize());
-  computestart = cpuSecond();
+
   for (int offset = 0; offset < batch_size; offset++) {
 
     ntt_cuda_kernel_rev<<<grid, block>>>(vec_dev, offset, num_bits, n_dev, rev,
@@ -181,9 +180,7 @@ extern "C" uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size,
     }
   }
   CHECK(cudaDeviceSynchronize());
-  computeElaps = 1000 * (cpuSecond() - computestart);
   CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
-  copyElaps = 1000 * (cpuSecond() - copystart);
 
   CHECK(cudaFree(ak_table_dev));
   CHECK(cudaFree(n_dev));
