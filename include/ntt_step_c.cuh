@@ -18,13 +18,14 @@
 //__global__ void ntt_cuda_kernel(int * g_idata, uint64_t * n, uint64_t * p,
 // uint64_t * r, bool * rev,int * g_odata);
 
-__global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int num_bits,
-                                      uint64_t *table, uint64_t *n, uint64_t *p,
-                                      bool rev, uint64_t *g_odata);
+__global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int offset,
+                                      int num_bits, uint64_t *table,
+                                      uint64_t *n, uint64_t *p, bool rev,
+                                      uint64_t *g_odata);
 extern "C" {
 
-uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, uint64_t p,
-                               uint64_t r, bool rev = true);
+uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size, uint64_t n,
+                               uint64_t p, uint64_t r, bool rev = true);
 };
 
 #endif

@@ -25,7 +25,7 @@ using namespace std;
 
 __global__ void ntt_cuda_kernel_stepB2_rev(uint64_t *g_idata, int num_bits ,uint64_t *n,  bool rev, uint64_t *g_odata)
 {
-	uint64_t m, factor1, factor2;
+	//uint64_t m, factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -49,7 +49,7 @@ __global__ void ntt_cuda_kernel_stepB2_rev(uint64_t *g_idata, int num_bits ,uint
 }
 __global__ void ntt_cuda_kernel_stepB2_fac_A(uint64_t *g_idata, uint64_t *table ,uint64_t *n, uint64_t *p, uint64_t i,uint64_t *fac1_dev,uint64_t *fac2_dev,uint64_t *g_odata)
 {
-	uint64_t factor1, factor2;
+	//uint64_t factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -68,7 +68,7 @@ __global__ void ntt_cuda_kernel_stepB2_fac_A(uint64_t *g_idata, uint64_t *table 
 }
 __global__ void ntt_cuda_kernel_stepB2_fac_B(uint64_t *g_idata,uint64_t *table ,uint64_t *n, uint64_t *p, uint64_t i, uint64_t *fac1_dev,uint64_t *fac2_dev,uint64_t *g_odata)
 {
-	uint64_t factor1, factor2;
+	//uint64_t factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;

@@ -123,7 +123,7 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	CHECK(cudaMemcpy(ak_table_dev, ak_table, sizeof(ak_table), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
-	CHECK(cudaMemcpy(r_dev, &r, sizeof(r), cudaMemcpyHostToDevice));
+	//CHECK(cudaMemcpy(r_dev, &r, sizeof(r), cudaMemcpyHostToDevice));
 
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
