@@ -84,14 +84,9 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
 	
 	for (int i=0;i<batch_size;i++){
-		//printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n * sizeof(uint64_t),bytes);
-		//printf("%llu ",vec_host[batch_size*n]);
-		// printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
 		memcpy(&vec_host[i*n],vec[i],n * sizeof(uint64_t));
 	}
-	//memcpy(vec_host, vec, bytes);
 
-	//printf("grid %d block %d \n", grid.x, block.x);
 	// device memory declare
 	uint64_t *vec_dev = NULL;
 	uint64_t *outVec_dev = NULL;
@@ -99,7 +94,6 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	//device memory allocate
 	CHECK(cudaMalloc((void **)&vec_dev, bytes));
 	CHECK(cudaMalloc((void **)&outVec_dev, bytes));
-
 
 	//remove bitreversal
 	uint64_t num_bits = log2(n);
@@ -109,7 +103,6 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	int i,j;
 	for (i=1;i<=32;i++){
 		a_table[i-1] = modExp(r,(p-1)/pow(2,i),p);
-		//printf("A: %llu i: %d \n",a_table[i-1],i);
 	}
 	uint64_t ak_table [65536] ;
 	for (i=0;i<32;i++){
@@ -120,16 +113,14 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	uint64_t *ak_table_dev =NULL;
 	uint64_t *n_dev =NULL;
 	uint64_t *p_dev =NULL;
-	//uint64_t *r_dev =NULL;
 
 	CHECK(cudaMalloc((void **)&ak_table_dev, sizeof(ak_table)));
 	CHECK(cudaMalloc((void **)&n_dev, sizeof(n)));
 	CHECK(cudaMalloc((void **)&p_dev, sizeof(p)));
-	//CHECK(cudaMalloc((void **)&r_dev, sizeof(r)));
+
 	CHECK(cudaMemcpy(ak_table_dev, ak_table, sizeof(ak_table), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
-	//CHECK(cudaMemcpy(r_dev, &r, sizeof(r), cudaMemcpyHostToDevice));
 
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
@@ -144,7 +135,6 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	computeElaps = 1000 * (cpuSecond() - computestart);
 	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
 	copyElaps = 1000 * (cpuSecond() - copystart);
-	//printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### batch ### \n batchsize: %lld first two number is %lld %lld \n", computeElaps, copyElaps,batch_size,outVec_host[0],outVec_host[1]);
 
 	CHECK(cudaFree(vec_dev));
 	CHECK(cudaFree(ak_table_dev));

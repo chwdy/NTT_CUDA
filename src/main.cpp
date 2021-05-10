@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
 	double timeStart, timeElaps;
 	uint64_t *outVec;
 
+	printf("-----------------\n");
 	//cpu
 	timeStart = cpuSecond();
 	outVec = inPlaceNTT_DIT_cpu(vec, n, p, r);
@@ -80,8 +81,6 @@ int main(int argc, char *argv[])
 	//gpu-step-c
 	printf("=============================== \n");;
 	printf("Step C is too slow to run, here is a copy of previous record \n");
-	//too slow to run
-	//here is the historical record we have
 	printf("gpu stepC total elapsed 179117.000103 with batch size 1 ,AVG: 43.729736 /vec \n");
 	printf("gpu stepC total elapsed 108559.000015 with batch size 16 ,AVG: 26.503662 /vec \n");
 	printf("gpu stepC total elapsed 104522.000074 with batch size 64 ,AVG: 25.518066 /vec \n");
@@ -123,11 +122,14 @@ int main(int argc, char *argv[])
 		delete[] out_mat[i];
 	}
 	delete[] mat;
-	printf("\n");
 	*/
+	printf("\n");
+	
 
 	//gpu-final
 	//make big input
+	printf("=============================== \n");;
+	printf("Running optimized final version on batch.. \n");
 	const uint64_t input_size = 4096;
 	uint64_t **mat = new uint64_t *[input_size];
 	uint64_t **out_mat = new uint64_t *[input_size];
@@ -138,21 +140,17 @@ int main(int argc, char *argv[])
 		out_mat[i] = new uint64_t[n];
 		memcpy(mat[i], vec, n * sizeof(uint64_t));
 	}
+	// mat is the matrix of all input
 
 	int batch_size[] = {1, 16, 64, 256, 512, 1024};
 	for (int i = 0; i < sizeof(batch_size) / sizeof(batch_size[0]); i++)
 	{
 		timeStart = cpuSecond();
 		for (int batch_count = 0; batch_count < input_size / batch_size[i]; batch_count++)
-		{
-			//printf("batch size : %d batch :%d index: %d first number %lld\n", batch_size[i],batch_count,batch_count*batch_size[i],mat[batch_count*batch_size[i]][0]);
+		{//run on batch
 			uint64_t *result = inPlaceNTT_DIT(mat + batch_count * batch_size[i], batch_size[i], n, p, r);
 			for (int j = 0; j < batch_size[i]; j++)
-			{
-				//printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n * sizeof(uint64_t),bytes);
-				//printf("%llu ",vec_host[batch_size*n]);
-				// printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
-				//printf("%d ",j+batch_count*batch_size[i]);
+			{//copy back the result on batch
 				memcpy(*(out_mat + j + batch_count * batch_size[i]), result + j * n, n * sizeof(uint64_t));
 			}
 		}

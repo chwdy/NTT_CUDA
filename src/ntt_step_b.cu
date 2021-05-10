@@ -64,9 +64,7 @@ __global__ void ntt_cuda_kernel_stepB(uint64_t *g_idata, int num_bits,uint64_t *
 				}
 			}
 		}	
-		
 	}
-
 }
 extern "C" 
 uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
@@ -81,8 +79,7 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	//var init
 	size_t bytes = n * sizeof(uint64_t);
 	uint64_t *vec_host = (uint64_t *)malloc(bytes);
-	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
-	//printf("grid %d block %d \n", grid.x, block.x);
+	uint64_t *outVec_host = (uint64_t *)malloc(bytes);
 
 	memcpy(vec_host, vec, bytes);
 
@@ -103,7 +100,6 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	int i,j;
 	for (i=1;i<=32;i++){
 		a_table[i-1] = modExp(r,(p-1)/pow(2,i),p);
-		//printf("A: %llu i: %d \n",a_table[i-1],i);
 	}
 	uint64_t ak_table [65536] ;
 	for (i=0;i<32;i++){
@@ -114,20 +110,19 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	uint64_t *ak_table_dev =NULL;
 	uint64_t *n_dev =NULL;
 	uint64_t *p_dev =NULL;
-	//uint64_t *r_dev =NULL;
 
 	CHECK(cudaMalloc((void **)&ak_table_dev, sizeof(ak_table)));
 	CHECK(cudaMalloc((void **)&n_dev, sizeof(n)));
 	CHECK(cudaMalloc((void **)&p_dev, sizeof(p)));
-	//CHECK(cudaMalloc((void **)&r_dev, sizeof(r)));
+
+	copystart= cpuSecond();
 	CHECK(cudaMemcpy(ak_table_dev, ak_table, sizeof(ak_table), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
-	//CHECK(cudaMemcpy(r_dev, &r, sizeof(r), cudaMemcpyHostToDevice));
 
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
-	copystart= cpuSecond();
+	
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
 	computestart= cpuSecond();
@@ -141,7 +136,6 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	CHECK(cudaFree(ak_table_dev));
 	CHECK(cudaFree(n_dev));
 	CHECK(cudaFree(p_dev));
-	//CHECK(cudaFree(r_dev));
 	CHECK(cudaFree(vec_dev));
 	CHECK(cudaFree(outVec_dev));
 

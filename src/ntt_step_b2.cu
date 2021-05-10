@@ -25,7 +25,6 @@ using namespace std;
 
 __global__ void ntt_cuda_kernel_stepB2_rev(uint64_t *g_idata, int num_bits ,uint64_t *n,  bool rev, uint64_t *g_odata)
 {
-	//uint64_t m, factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -49,7 +48,6 @@ __global__ void ntt_cuda_kernel_stepB2_rev(uint64_t *g_idata, int num_bits ,uint
 }
 __global__ void ntt_cuda_kernel_stepB2_fac_A(uint64_t *g_idata, uint64_t *table ,uint64_t *n, uint64_t *p, uint64_t i,uint64_t *fac1_dev,uint64_t *fac2_dev,uint64_t *g_odata)
 {
-	//uint64_t factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -68,7 +66,6 @@ __global__ void ntt_cuda_kernel_stepB2_fac_A(uint64_t *g_idata, uint64_t *table 
 }
 __global__ void ntt_cuda_kernel_stepB2_fac_B(uint64_t *g_idata,uint64_t *table ,uint64_t *n, uint64_t *p, uint64_t i, uint64_t *fac1_dev,uint64_t *fac2_dev,uint64_t *g_odata)
 {
-	//uint64_t factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -86,7 +83,6 @@ __global__ void ntt_cuda_kernel_stepB2_fac_B(uint64_t *g_idata,uint64_t *table ,
 extern "C" 
 uint64_t *inPlaceNTT_DIT_stepB2(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
-
 	double computestart, computeElaps,copystart,copyElaps;
 
 	int blocksize = 1024;
@@ -96,8 +92,7 @@ uint64_t *inPlaceNTT_DIT_stepB2(uint64_t *vec, uint64_t n, uint64_t p, uint64_t 
 	//var init
 	size_t bytes = n * sizeof(uint64_t);
 	uint64_t *vec_host = (uint64_t *)malloc(bytes);
-	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
-	//printf("grid %d block %d \n", grid.x, block.x);
+	uint64_t *outVec_host = (uint64_t *)malloc(bytes);
 
 	memcpy(vec_host, vec, bytes);
 
@@ -118,7 +113,6 @@ uint64_t *inPlaceNTT_DIT_stepB2(uint64_t *vec, uint64_t n, uint64_t p, uint64_t 
 	int i,j;
 	for (i=1;i<=32;i++){
 		a_table[i-1] = modExp(r,(p-1)/pow(2,i),p);
-		//printf("A: %llu i: %d \n",a_table[i-1],i);
 	}
 	uint64_t ak_table [65536] ;
 	for (i=0;i<32;i++){
@@ -137,14 +131,14 @@ uint64_t *inPlaceNTT_DIT_stepB2(uint64_t *vec, uint64_t n, uint64_t p, uint64_t 
 	CHECK(cudaMalloc((void **)&p_dev, sizeof(p)));
 	CHECK(cudaMalloc((void **)&fac1_dev, bytes));
 	CHECK(cudaMalloc((void **)&fac2_dev, bytes));
+	copystart= cpuSecond();
 	CHECK(cudaMemcpy(ak_table_dev, ak_table, sizeof(ak_table), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
-	//CHECK(cudaMemcpy(r_dev, &r, sizeof(r), cudaMemcpyHostToDevice));
 
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
-	copystart= cpuSecond();
+	
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
 	computestart= cpuSecond();

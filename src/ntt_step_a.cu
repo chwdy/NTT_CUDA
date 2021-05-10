@@ -83,8 +83,7 @@ uint64_t *inPlaceNTT_DIT_stepA(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	//var init
 	size_t bytes = n * sizeof(uint64_t);
 	uint64_t *vec_host = (uint64_t *)malloc(bytes);
-	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
-	//printf("grid %d block %d \n", grid.x, block.x);
+	uint64_t *outVec_host = (uint64_t *)malloc(bytes); 
 
 	memcpy(vec_host, vec, bytes);
 
@@ -96,12 +95,12 @@ uint64_t *inPlaceNTT_DIT_stepA(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	CHECK(cudaMalloc((void **)&vec_dev, bytes));
 	CHECK(cudaMalloc((void **)&outVec_dev, bytes));
 
-
+	copystart= cpuSecond();
 	//remove bitreversal
 	uint64_t num_bits = log2(n);
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
-	copystart= cpuSecond();
+	
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
 	computestart= cpuSecond();

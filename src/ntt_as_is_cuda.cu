@@ -98,11 +98,11 @@ uint64_t *inPlaceNTT_DIT_cuda_asis(uint64_t *vec, uint64_t n, uint64_t p, uint64
 	CHECK(cudaMalloc((void **)&vec_dev, bytes));
 	CHECK(cudaMalloc((void **)&outVec_dev, bytes));
 
-
+	copystart= cpuSecond();
 	//first task
 	CHECK(cudaMemset(vec_dev,0,bytes))
 	CHECK(cudaMemset(outVec_dev,0,bytes))
-	copystart= cpuSecond();
+	
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
 	computestart= cpuSecond();

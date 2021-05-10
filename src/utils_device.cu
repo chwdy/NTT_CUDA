@@ -25,15 +25,12 @@
 
 		reverse_num = 0;
 		for(uint64_t j = 0; j < num_bits; j++){
-
 			reverse_num = reverse_num << 1;
 			if(i & (1 << j)){
 				reverse_num = reverse_num | 1;
 			}
 		}
-
 		result[reverse_num] = vec[i];
-
 	}
 
 	return result;
@@ -50,19 +47,13 @@
  __device__ uint64_t modExp_D(uint64_t base, uint64_t exp, uint64_t m){
 
 	uint64_t result = 1;
-	
 	while(exp > 0){
-
 		if(exp % 2){
-
 			result = modulo_D(result*base, m);
-
 		}
-
 		exp = exp >> 1;
 		base = modulo_D(base*base,m);
 	}
-
 	return result;
 }
 
@@ -75,7 +66,6 @@
  */
  __device__ uint64_t modulo_D(int64_t base, int64_t m){
 	int64_t result = base % m;
-
 	return (result >= 0) ? result : result + m;
 }
 

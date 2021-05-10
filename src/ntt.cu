@@ -26,7 +26,7 @@ using namespace std;
 
 __global__ void ntt_cuda_kernel_rev(uint64_t *g_idata, int offset, int num_bits,
                                     uint64_t *n, bool rev, uint64_t *g_odata) {
-  //uint64_t m, factor1, factor2;
+  // uint64_t m, factor1, factor2;
   // set thread ID
   uint64_t tid = threadIdx.x;
   unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,7 +50,6 @@ __global__ void ntt_cuda_kernel_fac_A(uint64_t *g_idata, int offset,
                                       uint64_t *table, uint64_t *n, uint64_t *p,
                                       uint64_t i, uint64_t *fac1_dev,
                                       uint64_t *fac2_dev, uint64_t *g_odata) {
-  //uint64_t factor1, factor2;
   // set thread ID
   uint64_t tid = threadIdx.x;
   unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -80,7 +79,7 @@ __global__ void ntt_cuda_kernel_fac_B(uint64_t *g_idata, int offset,
                                       uint64_t *fac2_dev, uint64_t *g_odata)
 
 {
-  //uint64_t factor1, factor2;
+  // uint64_t factor1, factor2;
   // set thread ID
   uint64_t tid = threadIdx.x;
   unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -98,9 +97,9 @@ __global__ void ntt_cuda_kernel_fac_B(uint64_t *g_idata, int offset,
   }
 }
 
-extern "C" 
-uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size, uint64_t n,
-	uint64_t p, uint64_t r, bool rev ) {
+extern "C" uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size,
+                                    uint64_t n, uint64_t p, uint64_t r,
+                                    bool rev) {
 
   double computestart, computeElaps, copystart, copyElaps;
 
@@ -115,14 +114,10 @@ uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size, uint64_t n,
       (uint64_t *)malloc(bytes); // grid.x * sizeof(uint64_t));
 
   for (int i = 0; i < batch_size; i++) {
-    // printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n *
-    // sizeof(uint64_t),bytes); printf("%llu ",vec_host[batch_size*n]);
-    // printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
+
     memcpy(&vec_host[i * n], vec[i], n * sizeof(uint64_t));
   }
-  // memcpy(vec_host, vec, bytes);
 
-  // printf("grid %d block %d \n", grid.x, block.x);
   // device memory declare
   uint64_t *vec_dev = NULL;
   uint64_t *outVec_dev = NULL;
@@ -135,11 +130,11 @@ uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size, uint64_t n,
   uint64_t num_bits = log2(n);
 
   num_bits = log2(n);
+  // pre-computed-modEXP
   uint64_t a_table[32];
   int i, j;
   for (i = 1; i <= 32; i++) {
     a_table[i - 1] = modExp(r, (p - 1) / pow(2, i), p);
-    // printf("A: %llu i: %d \n",a_table[i-1],i);
   }
   uint64_t ak_table[65536];
   for (i = 0; i < 32; i++) {
@@ -162,7 +157,6 @@ uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size, uint64_t n,
                    cudaMemcpyHostToDevice));
   CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
   CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
-  // CHECK(cudaMemcpy(r_dev, &r, sizeof(r), cudaMemcpyHostToDevice));
 
   CHECK(cudaMemset(vec_dev, 0, bytes))
   CHECK(cudaMemset(outVec_dev, 0, bytes))
@@ -171,8 +165,7 @@ uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size, uint64_t n,
   CHECK(cudaDeviceSynchronize());
   computestart = cpuSecond();
   for (int offset = 0; offset < batch_size; offset++) {
-    // ntt_cuda_kernel_stepC<<<grid, block>>>(vec_dev, offset, num_bits,
-    // ak_table_dev, n_dev, p_dev, rev, outVec_dev);
+
     ntt_cuda_kernel_rev<<<grid, block>>>(vec_dev, offset, num_bits, n_dev, rev,
                                          outVec_dev);
     CHECK(cudaDeviceSynchronize());
@@ -191,9 +184,6 @@ uint64_t *inPlaceNTT_DIT(uint64_t **vec, uint64_t batch_size, uint64_t n,
   computeElaps = 1000 * (cpuSecond() - computestart);
   CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
   copyElaps = 1000 * (cpuSecond() - copystart);
-  // printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### batch
-  // ### \n batchsize: %lld first two number is %lld %lld \n", computeElaps,
-  // copyElaps,batch_size,outVec_host[0],outVec_host[1]);
 
   CHECK(cudaFree(ak_table_dev));
   CHECK(cudaFree(n_dev));
