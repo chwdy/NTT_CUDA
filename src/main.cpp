@@ -71,12 +71,58 @@ int main(int argc, char *argv[])
 	printf("gpu stepB total elapsed %lf \n", timeElaps);
 	printf("\n");
 
-	//gpu-step-b
-	timeStart = cpuSecond();
-	outVec = inPlaceNTT_DIT_stepC(vec, n, p, r);
-	timeElaps = 1000 * (cpuSecond() - timeStart);
-	printf("gpu stepB total elapsed %lf \n", timeElaps);
-	printf("\n");
+	//gpu-step-c
+	//make big input
+	const uint64_t input_size = 4096;
+	uint64_t **mat = new uint64_t*[input_size];
+	uint64_t **out_mat = new uint64_t*[input_size];
+	// mat[0][1]= new int(1);
+	for (int i=0;i<input_size;i++){
+		mat[i] = new uint64_t[n];
+		out_mat[i] = new uint64_t[n];
+		memcpy(mat[i],vec,n * sizeof(uint64_t));
+	}
+	// printf("%llu \n",sizeof(mat));
+	// printf("%llu \n", sizeof(mat[0]));
+	// printf("%llu \n", sizeof(mat[0][0]));
+	// printf("%p \n", mat);
+	// printf("0%p \n", mat[0]);
+	// printf("1%p \n", mat[1]);
+	// printf("*0%p \n", &mat[0]);
+	// printf("*1%p \n", &mat[1]);
+	// printf("00 %p \n", &mat[0][0]);
+	// printf("0 4095 %p \n", &mat[0][4095]);
+	// printf("0 4096 %p \n", &mat[0][4096]);
+	// printf("out 0 0 %p \n", &out_mat[0][0]);
+	// printf("out 0 4095 %p \n", &out_mat[0][4095]);
+	// printf("out 0 4096 %p \n", &out_mat[0][4096]);
+	// printf("10 %p \n", &mat[1][0]);
+	// printf("%lld \n", mat[1][1]);
+	int batch_size[] = {1,16,64,256,512,1024};
+	for (int i =0;i<sizeof(batch_size)/sizeof(batch_size[0]);i++){
+		timeStart = cpuSecond();
+		for (int batch_count=0; batch_count< input_size/batch_size[i] ; batch_count++){
+			//printf("batch size : %d batch :%d index: %d first number %lld\n", batch_size[i],batch_count,batch_count*batch_size[i],mat[batch_count*batch_size[i]][0]);
+			uint64_t *result = inPlaceNTT_DIT_stepC(mat+batch_count*batch_size[i], batch_size[i],n, p, r);
+			for (int j=0;j<batch_size[i];j++){
+			//printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n * sizeof(uint64_t),bytes);
+			//printf("%llu ",vec_host[batch_size*n]);
+			// printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
+				//printf("%d ",j+batch_count*batch_size[i]);
+				memcpy(*(out_mat+j+batch_count*batch_size[i]),result+j*n,n * sizeof(uint64_t));
+			}
+		}
+		timeElaps = 1000 * (cpuSecond() - timeStart);
+		printf("gpu stepC total elapsed %lf with batch size %d ,AVG: %f /vec\n", timeElaps,batch_size[i],timeElaps/n);
+	}
+
+
+	for (int i=0;i<input_size;i++){
+		delete[] mat[i];
+		delete[] out_mat[i];
+	}
+	delete[] mat;
+	// printf("\n");
 
 	return 0;
 }

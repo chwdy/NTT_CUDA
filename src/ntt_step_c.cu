@@ -23,7 +23,7 @@
  */
 using namespace std;
 
-__global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int num_bits,uint64_t *table ,uint64_t *n, uint64_t *p, bool rev, uint64_t *g_odata)
+__global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int offset,int num_bits,uint64_t *table ,uint64_t *n, uint64_t *p, bool rev, uint64_t *g_odata)
 {
 
 	uint64_t m, factor1, factor2;
@@ -41,11 +41,11 @@ __global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int num_bits,uint64_t *
 				reverse_num = reverse_num | 1;
 			}
 		}
-		g_odata[reverse_num] = g_idata[idx];
+		g_odata[offset * *n + reverse_num] = g_idata[offset * *n +idx];
 	}
 	else
 	{
-		g_odata[idx] = g_idata[idx];
+		g_odata[offset * *n +idx] = g_idata[offset * *n +idx];
 	}
 	__syncthreads();
 	if (idx == 0)
@@ -57,10 +57,10 @@ __global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int num_bits,uint64_t *
 			{
 				for (uint64_t k = 0; k < m / 2; k++)
 				{
-					factor1 = g_odata[j + k];
-					factor2 = modulo_D(uint64_t(table[(i-1)*2048+k])*uint64_t(g_odata[j + k + m / 2]), *p);
-					g_odata[j + k] = modulo_D(factor1 + factor2, *p);
-					g_odata[j + k + m / 2] = modulo_D(factor1 - factor2, *p);
+					factor1 = g_odata[offset * *n +j + k];
+					factor2 = modulo_D(uint64_t(table[(i-1)*2048+k])*uint64_t(g_odata[offset * *n +j + k + m / 2]), *p);
+					g_odata[offset * *n +j + k] = modulo_D(factor1 + factor2, *p);
+					g_odata[offset * *n +j + k + m / 2] = modulo_D(factor1 - factor2, *p);
 				}
 			}
 		}	
@@ -69,7 +69,7 @@ __global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int num_bits,uint64_t *
 
 }
 extern "C" 
-uint64_t *inPlaceNTT_DIT_stepC(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
+uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
 
 	double computestart, computeElaps,copystart,copyElaps;
@@ -79,13 +79,19 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	dim3 grid((n - 1) / block.x + 1, 1);
 
 	//var init
-	size_t bytes = n * sizeof(uint64_t);
+	size_t bytes = n  * batch_size* sizeof(uint64_t);
 	uint64_t *vec_host = (uint64_t *)malloc(bytes);
 	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
+	
+	for (int i=0;i<batch_size;i++){
+		//printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n * sizeof(uint64_t),bytes);
+		//printf("%llu ",vec_host[batch_size*n]);
+		// printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
+		memcpy(&vec_host[i*n],vec[i],n * sizeof(uint64_t));
+	}
+	//memcpy(vec_host, vec, bytes);
+
 	//printf("grid %d block %d \n", grid.x, block.x);
-
-	memcpy(vec_host, vec, bytes);
-
 	// device memory declare
 	uint64_t *vec_dev = NULL;
 	uint64_t *outVec_dev = NULL;
@@ -131,12 +137,14 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
 	computestart= cpuSecond();
-	ntt_cuda_kernel_stepC<<<grid, block>>>(vec_dev,num_bits,ak_table_dev,n_dev, p_dev,rev, outVec_dev);
+	for (int offset = 0;offset<batch_size;offset++){
+		ntt_cuda_kernel_stepC<<<grid, block>>>(vec_dev,offset,num_bits,ak_table_dev,n_dev, p_dev,rev, outVec_dev);
+	}
 	CHECK(cudaDeviceSynchronize());	
 	computeElaps = 1000 * (cpuSecond() - computestart);
 	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
 	copyElaps = 1000 * (cpuSecond() - copystart);
-	printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### modexp offline### \n first two number is %lld %lld \n", computeElaps, copyElaps,outVec_host[0],outVec_host[1]);
+	//printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### batch ### \n batchsize: %lld first two number is %lld %lld \n", computeElaps, copyElaps,batch_size,outVec_host[0],outVec_host[1]);
 
 	CHECK(cudaFree(vec_dev));
 	CHECK(cudaFree(outVec_dev));
