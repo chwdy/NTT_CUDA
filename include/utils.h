@@ -14,17 +14,6 @@ using namespace std;
 uint64_t *bit_reverse(uint64_t *vec, uint64_t n);
 
 /**
- * Compare two vectors element-wise and return whether they are equivalent
- *
- * @param vec1	The first vector to compare
- * @param vec2 	The second vector to compare
- * @param n 	The length of the vectors
- * @param debug	Whether to print debug information (will run entire vector)
- * @return 	Whether the two vectors are element-wise equivalent
- */
-bool compVec(uint64_t *vec1, uint64_t *vec2, uint64_t n, bool debug=false);
-
-/**
  * Perform the operation 'base^exp (mod m)' using the memory-efficient method
  *
  * @param base	The base of the expression
