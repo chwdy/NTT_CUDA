@@ -114,12 +114,12 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	uint64_t *ak_table_dev =NULL;
 	uint64_t *n_dev =NULL;
 	uint64_t *p_dev =NULL;
-	uint64_t *r_dev =NULL;
+	//uint64_t *r_dev =NULL;
 
 	CHECK(cudaMalloc((void **)&ak_table_dev, sizeof(ak_table)));
 	CHECK(cudaMalloc((void **)&n_dev, sizeof(n)));
 	CHECK(cudaMalloc((void **)&p_dev, sizeof(p)));
-	CHECK(cudaMalloc((void **)&r_dev, sizeof(r)));
+	//CHECK(cudaMalloc((void **)&r_dev, sizeof(r)));
 	CHECK(cudaMemcpy(ak_table_dev, ak_table, sizeof(ak_table), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
@@ -138,6 +138,10 @@ uint64_t *inPlaceNTT_DIT_stepB(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r
 	copyElaps = 1000 * (cpuSecond() - copystart);
 	printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### modexp offline### \n first two number is %lld %lld \n", computeElaps, copyElaps,outVec_host[0],outVec_host[1]);
 
+	CHECK(cudaFree(ak_table_dev));
+	CHECK(cudaFree(n_dev));
+	CHECK(cudaFree(p_dev));
+	//CHECK(cudaFree(r_dev));
 	CHECK(cudaFree(vec_dev));
 	CHECK(cudaFree(outVec_dev));
 

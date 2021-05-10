@@ -23,9 +23,8 @@
  */
 using namespace std;
 
-__global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int offset,int num_bits,uint64_t *table ,uint64_t *n, uint64_t *p, bool rev, uint64_t *g_odata)
+__global__ void ntt_cuda_kernel_stepB2_rev(uint64_t *g_idata, int num_bits ,uint64_t *n,  bool rev, uint64_t *g_odata)
 {
-
 	uint64_t m, factor1, factor2;
 	//set thread ID
 	uint64_t tid = threadIdx.x;
@@ -41,35 +40,51 @@ __global__ void ntt_cuda_kernel_stepC(uint64_t *g_idata, int offset,int num_bits
 				reverse_num = reverse_num | 1;
 			}
 		}
-		g_odata[offset * *n + reverse_num] = g_idata[offset * *n +idx];
+		g_odata[reverse_num] = g_idata[idx];
 	}
 	else
 	{
-		g_odata[offset * *n +idx] = g_idata[offset * *n +idx];
+		g_odata[idx] = g_idata[idx];
 	}
-	__syncthreads();
-	if (idx == 0)
-	{
-		for (uint64_t i = 1; i <= num_bits; i++)
-		{
-			m = pow_D(uint64_t(2), i);
-			for (uint64_t j = 0; j < *n; j += m)
-			{
-				for (uint64_t k = 0; k < m / 2; k++)
-				{
-					factor1 = g_odata[offset * *n +j + k];
-					factor2 = modulo_D(uint64_t(table[(i-1)*2048+k])*uint64_t(g_odata[offset * *n +j + k + m / 2]), *p);
-					g_odata[offset * *n +j + k] = modulo_D(factor1 + factor2, *p);
-					g_odata[offset * *n +j + k + m / 2] = modulo_D(factor1 - factor2, *p);
-				}
-			}
-		}	
-		
-	}
-
 }
+__global__ void ntt_cuda_kernel_stepB2_fac_A(uint64_t *g_idata, uint64_t *table ,uint64_t *n, uint64_t *p, uint64_t i,uint64_t *fac1_dev,uint64_t *fac2_dev,uint64_t *g_odata)
+{
+	uint64_t factor1, factor2;
+	//set thread ID
+	uint64_t tid = threadIdx.x;
+	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
+	//boundary check
+	if (tid >= *n || idx >*n)return;
+	uint64_t m = pow_D(uint64_t(2), i);
+	uint64_t k = idx %m;
+
+	if(k<m/2){
+		fac1_dev[idx] = g_odata[idx];
+		fac2_dev[idx] = modulo_D(uint64_t(table[(i-1)*2048+k])*uint64_t(g_odata[idx+ m / 2]), *p);
+	}else{
+		fac1_dev[idx] = g_odata[idx-m/2];
+		fac2_dev[idx] = modulo_D(uint64_t(table[(i-1)*2048+k-m/2])*uint64_t(g_odata[idx]), *p);
+	}	
+}
+__global__ void ntt_cuda_kernel_stepB2_fac_B(uint64_t *g_idata,uint64_t *table ,uint64_t *n, uint64_t *p, uint64_t i, uint64_t *fac1_dev,uint64_t *fac2_dev,uint64_t *g_odata)
+{
+	uint64_t factor1, factor2;
+	//set thread ID
+	uint64_t tid = threadIdx.x;
+	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
+	//boundary check
+	if (tid >= *n || idx >*n)return;
+	uint64_t m = pow_D(uint64_t(2), i);
+	uint64_t k = idx %m;
+	if(k<m/2){
+		g_odata[idx] = modulo_D(fac1_dev[idx] + fac2_dev[idx], *p);
+	}else{
+		g_odata[idx] = modulo_D(fac1_dev[idx] - fac2_dev[idx], *p);
+	}
+}
+
 extern "C" 
-uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, uint64_t p, uint64_t r, bool rev)
+uint64_t *inPlaceNTT_DIT_stepB2(uint64_t *vec, uint64_t n, uint64_t p, uint64_t r, bool rev)
 {
 
 	double computestart, computeElaps,copystart,copyElaps;
@@ -79,19 +94,13 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	dim3 grid((n - 1) / block.x + 1, 1);
 
 	//var init
-	size_t bytes = n  * batch_size* sizeof(uint64_t);
+	size_t bytes = n * sizeof(uint64_t);
 	uint64_t *vec_host = (uint64_t *)malloc(bytes);
 	uint64_t *outVec_host = (uint64_t *)malloc(bytes); //grid.x * sizeof(uint64_t));
-	
-	for (int i=0;i<batch_size;i++){
-		//printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n * sizeof(uint64_t),bytes);
-		//printf("%llu ",vec_host[batch_size*n]);
-		// printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
-		memcpy(&vec_host[i*n],vec[i],n * sizeof(uint64_t));
-	}
-	//memcpy(vec_host, vec, bytes);
-
 	//printf("grid %d block %d \n", grid.x, block.x);
+
+	memcpy(vec_host, vec, bytes);
+
 	// device memory declare
 	uint64_t *vec_dev = NULL;
 	uint64_t *outVec_dev = NULL;
@@ -100,10 +109,10 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	CHECK(cudaMalloc((void **)&vec_dev, bytes));
 	CHECK(cudaMalloc((void **)&outVec_dev, bytes));
 
-
 	//remove bitreversal
 	uint64_t num_bits = log2(n);
 
+	//modexp offline
 	num_bits = log2(n);
 	uint64_t a_table [32];
 	int i,j;
@@ -120,12 +129,14 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	uint64_t *ak_table_dev =NULL;
 	uint64_t *n_dev =NULL;
 	uint64_t *p_dev =NULL;
-	//uint64_t *r_dev =NULL;
+	uint64_t *fac1_dev =NULL;
+	uint64_t *fac2_dev =NULL;
 
 	CHECK(cudaMalloc((void **)&ak_table_dev, sizeof(ak_table)));
 	CHECK(cudaMalloc((void **)&n_dev, sizeof(n)));
 	CHECK(cudaMalloc((void **)&p_dev, sizeof(p)));
-	//CHECK(cudaMalloc((void **)&r_dev, sizeof(r)));
+	CHECK(cudaMalloc((void **)&fac1_dev, bytes));
+	CHECK(cudaMalloc((void **)&fac2_dev, bytes));
 	CHECK(cudaMemcpy(ak_table_dev, ak_table, sizeof(ak_table), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(n_dev, &n, sizeof(n), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(p_dev, &p, sizeof(p), cudaMemcpyHostToDevice));
@@ -137,20 +148,26 @@ uint64_t *inPlaceNTT_DIT_stepC(uint64_t **vec, uint64_t batch_size,uint64_t n, u
 	CHECK(cudaMemcpy(vec_dev, vec_host, bytes, cudaMemcpyHostToDevice));
 	CHECK(cudaDeviceSynchronize());
 	computestart= cpuSecond();
-	for (int offset = 0;offset<batch_size;offset++){
-		ntt_cuda_kernel_stepC<<<grid, block>>>(vec_dev,offset,num_bits,ak_table_dev,n_dev, p_dev,rev, outVec_dev);
-	}
+	ntt_cuda_kernel_stepB2_rev<<<grid, block>>>(vec_dev,num_bits,n_dev,rev, outVec_dev);
 	CHECK(cudaDeviceSynchronize());	
+	for (uint64_t i = 1; i <= num_bits; i++)
+	{
+		ntt_cuda_kernel_stepB2_fac_A<<<grid, block>>>(vec_dev,ak_table_dev,n_dev,p_dev, i,fac1_dev,fac2_dev,outVec_dev);
+		CHECK(cudaDeviceSynchronize());	
+		ntt_cuda_kernel_stepB2_fac_B<<<grid, block>>>(vec_dev,ak_table_dev,n_dev,p_dev, i,fac1_dev,fac2_dev,outVec_dev);
+		CHECK(cudaDeviceSynchronize());	
+	}
 	computeElaps = 1000 * (cpuSecond() - computestart);
 	CHECK(cudaMemcpy(outVec_host, outVec_dev, bytes, cudaMemcpyDeviceToHost));
 	copyElaps = 1000 * (cpuSecond() - copystart);
-	//printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### batch ### \n batchsize: %lld first two number is %lld %lld \n", computeElaps, copyElaps,batch_size,outVec_host[0],outVec_host[1]);
+	printf("gpu 1 pure compute time: %lf compute+copy time: %lf for ### modexp offline### \n first two number is %lld %lld \n", computeElaps, copyElaps,outVec_host[0],outVec_host[1]);
 
 	CHECK(cudaFree(vec_dev));
 	CHECK(cudaFree(ak_table_dev));
 	CHECK(cudaFree(n_dev));
 	CHECK(cudaFree(p_dev));
-	CHECK(cudaFree(vec_dev));
+	CHECK(cudaFree(fac1_dev));
+	CHECK(cudaFree(fac2_dev));
 	CHECK(cudaFree(outVec_dev));
 
 	return outVec_host;
