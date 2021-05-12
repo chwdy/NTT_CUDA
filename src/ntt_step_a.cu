@@ -31,7 +31,7 @@ __global__ void ntt_cuda_kernel_stepA(uint64_t *g_idata, uint64_t num_bits, uint
 	uint64_t tid = threadIdx.x;
 	unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
 	//boundary check
-	if (tid >= n || idx >n)return;
+	if (tid >= n || idx >= n)return;
 	if (rev)
 	{
 		uint64_t reverse_num= 0;
