@@ -54,7 +54,7 @@ __global__ void ntt_cuda_kernel_fac_A(uint64_t *g_idata, int offset,
   uint64_t tid = threadIdx.x;
   unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
   // boundary check
-  if (tid >= *n || idx > *n)
+  if (tid >= *n || idx >= *n)
     return;
   uint64_t m = pow_D(uint64_t(2), i);
   uint64_t k = idx % m;

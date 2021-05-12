@@ -1,6 +1,9 @@
 #include <time.h>
 #include "../include/utils2.h"
+#include "../include/utils2.h"
 
+
+#if defined(_WIN32) || defined(WIN32)
 int gettimeofday(struct timeval *tp, void *tzp){
   time_t clock;
   struct tm tm;
@@ -18,6 +21,9 @@ int gettimeofday(struct timeval *tp, void *tzp){
   tp->tv_usec = wtm.wMilliseconds * 1000;
   return (0);
 }
+#endif
+
+
 double cpuSecond()
 {
   struct timeval tp;
