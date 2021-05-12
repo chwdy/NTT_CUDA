@@ -11,7 +11,7 @@
 #include "../include/utils_device.cuh"	
 #include "../include/cuda_device.cuh"
 
-/**
+/** Adding Multi-thread Computing
  * Perform an in-place iterative breadth-first decimation-in-time Cooley-Tukey NTT on an input vector and return the result
  *
  * @param vec 	The input vector to be transformed
