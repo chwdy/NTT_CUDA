@@ -2,6 +2,8 @@
 
 ## Setup
 
+
+Clone the repo to you local directory, the file structure is shown below
 ```
  NTT_CUDA/
     ├── Makefile
@@ -33,6 +35,16 @@
 
 ```
 
+Use the Makefile to compile
+
+'''
+make
+'''
+Run the compiled program to automatically compute and evaluate optimization methods
+
+'''
+./NTT
+'''
 ## Explanation for our code file:
 
 <code>Ntt.cu</code>: optimized parallel CUDA code, including bit reversal removement, offline phase modular exponentiation, multi-thread computing and input-batching
