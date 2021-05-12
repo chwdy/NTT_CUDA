@@ -5,8 +5,8 @@
 ```
  NTT_CUDA/
     ├── Makefile
-    ├── include/  (containing the json file)
-    └── src/  (containing the .png file)
+    ├── include/ 
+    └── src/ 
 ```
 
 ## Explanation for our code file:
