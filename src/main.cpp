@@ -87,42 +87,7 @@ int main(int argc, char *argv[])
 	printf("gpu stepC total elapsed 103601.999998 with batch size 256 ,AVG: 25.293457 /vec \n");
 	printf("gpu stepC total elapsed 103600.999832 with batch size 512 ,AVG: 25.293213 /vec \n");
 	printf("gpu stepC total elapsed 103771.000147 with batch size 1024 ,AVG: 25.334717 /vec \n");
-	/* //gpu-step-c
-	//make big input
-	const uint64_t input_size = 4096;
-	uint64_t **mat = new uint64_t*[input_size];
-	uint64_t **out_mat = new uint64_t*[input_size];
-	// mat[0][1]= new int(1);
-	for (int i=0;i<input_size;i++){
-		mat[i] = new uint64_t[n];
-		out_mat[i] = new uint64_t[n];
-		memcpy(mat[i],vec,n * sizeof(uint64_t));
-	}
 	
-	int batch_size[] = {1,16,64,256,512,1024};
-	for (int i =0;i<sizeof(batch_size)/sizeof(batch_size[0]);i++){
-		timeStart = cpuSecond();
-		for (int batch_count=0; batch_count< input_size/batch_size[i] ; batch_count++){
-			//printf("batch size : %d batch :%d index: %d first number %lld\n", batch_size[i],batch_count,batch_count*batch_size[i],mat[batch_count*batch_size[i]][0]);
-			uint64_t *result = inPlaceNTT_DIT_stepC(mat+batch_count*batch_size[i], batch_size[i],n, p, r);
-			for (int j=0;j<batch_size[i];j++){
-			//printf("batch: %lld index :%lld size:%llu /%zu\n", i,i*n,i*n * sizeof(uint64_t),bytes);
-			//printf("%llu ",vec_host[batch_size*n]);
-			// printf("%p %p %p",vec_host,&vec_host[i*n],&vec_host[batch_size*n]);
-				//printf("%d ",j+batch_count*batch_size[i]);
-				memcpy(*(out_mat+j+batch_count*batch_size[i]),result+j*n,n * sizeof(uint64_t));
-			}
-		}
-		timeElaps = 1000 * (cpuSecond() - timeStart);
-		printf("gpu final total elapsed %lf with batch size %d ,AVG: %f /vec\n", timeElaps,batch_size[i],timeElaps/n);
-	}
-
-	for (int i=0;i<input_size;i++){
-		delete[] mat[i];
-		delete[] out_mat[i];
-	}
-	delete[] mat;
-	*/
 	printf("\n");
 	
 
