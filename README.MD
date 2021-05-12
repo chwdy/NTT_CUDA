@@ -1,18 +1,29 @@
-Explanation for our code file:
+# High-Performance NTTs in CUDA
 
-Ntt.cu: optimized parallel CUDA code, including bit reversal removement, offline phase modular exponentiation, multi-thread computing and input-batching
+## Setup
 
-Ntt _as_is.cu: first task, implement NTT in CUDA using single thread to compute
+```
+ NTT_CUDA/
+    ├── Makefile
+    ├── include/  (containing the json file)
+    └── src/  (containing the .png file)
+```
 
-NTT _step_a.cu: a) bit reversal removement only
+## Explanation for our code file:
 
-NTT _step_b.cu: adding offline phase modular exponentiation 
+<code>Ntt.cu</code>: optimized parallel CUDA code, including bit reversal removement, offline phase modular exponentiation, multi-thread computing and input-batching
 
-NTT _step_b2.cu: adding multi-thread computing
+<code>Ntt_as_is.cu</code>: first task, implement NTT in CUDA using single thread to compute
 
-NTT.cu: adding input batching
+<code>NTT_step_a.cu</code>: a) bit reversal removement only
 
-NTT_step_c.cu: input batching testing
+<code>NTT_step_b.cu</code>: adding offline phase modular exponentiation 
+
+<code>NTT_step_b2.cu</code>: adding multi-thread computing
+
+<code>NTT.cu</code>: adding input batching
+
+<code>NTT_step_c.cu</code>: input batching testing
 
 block size may affect the proper execution of the code
 
