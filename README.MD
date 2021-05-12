@@ -1,7 +1,14 @@
 # High-Performance NTTs in CUDA
 
-## Setup
+The Number Theoretic Transform (NTT) is an efficient algorithm for computing products of polynomials with 
+coefficients in finite fields. It is commonly used in Post-Quantum Cryptography, specifically, homomorphic 
+encryption. This project implements the NTT algorithm in CUDA, and experiments a few optimization methods.
 
+## Dependency 
+
+TODO
+
+## Setup
 
 Clone the repo to you local directory, the file structure is shown below
 ```
@@ -40,7 +47,7 @@ Use the Makefile to compile
 ```
 make
 ```
-Run the compiled program to automatically compute and evaluate optimization methods
+Run the compiled program to automatically compute and evaluate optimization methods. 
 
 ```
 ./NTT
