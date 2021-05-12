@@ -6,7 +6,31 @@
  NTT_CUDA/
     ├── Makefile
     ├── include/ 
+    |    ├── cuda_device.cuh     
+    |    ├── ntt_cpu.h 
+    |    ├── ntt_step_a.cuh   
+    | 	 ├── ntt_step_b.cuh  
+    |    ├── utils2.h          
+    |    ├── utils.h
+    |    ├── ntt_as_is_cuda.cuh  
+    |	 ├── ntt.cuh    
+    |	 ├── ntt_step_b2.cuh  
+    |	 ├── ntt_step_c.cuh  
+    |	 ├── utils_device.cuh
     └── src/ 
+    |    ├── cuda_device.cu
+    |    ├── ntt_as_is_cuda.cu
+    |    ├── ntt.cu
+    | 	 ├── ntt_step_b2.cu 
+    |    ├── ntt_step_c.cu 
+    |    ├── utils.cpp 
+    |    ├── main.cpp  
+    |	 ├── ntt_cpu.cpp 
+    |	 ├── ntt_step_a.cu 
+    |	 ├── ntt_step_b.cu 
+    |	 ├── utils_device.cu 
+    |	 `── utils_device.cu 
+
 ```
 
 ## Explanation for our code file:
