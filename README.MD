@@ -16,6 +16,6 @@ NTT_step_c.cu: input batching testing
 
 block size may affect the proper execution of the code
 
-TODO: whether to change the size from 1024 to 768 or 512 since it won't affect performance
+TODO: whether to change the block size from 1024 to 768 or 512 since it won't affect performance
 
 TODO: currently only support Windows, need further optimization for Linux system
